@@ -12,7 +12,7 @@ import Link from "next/link";
 const knockingAudio = "/gynecologist.mp3";
 const LANYARD_USER_ID = "1243325162489643050";
 
-const WAKE_UP_WORDS = ["wake", "up", "filthy", "!"];
+const WAKE_UP_WORDS = ["wake", "up", "f1lthy", "!"];
 const WAKE_UP_TIMINGS = [1285, 1539, 1767, 1767 + 280];
 const WAKE_UP_FADE_DELAY = 1000;
 const WAKE_UP_FADE_DURATION = 1000;
