@@ -67,7 +67,7 @@ export default function Home() {
     let text = "";
 
     for (let i = 0; i < WAKE_UP_WORDS.length; i++) {
-      if (timeMs >= WAKE_UP_TIMINGS[i]) {
+      if (timeMs >= (WAKE_UP_TIMINGS[i] - 100)) {
         const word = WAKE_UP_WORDS[i];
         if (word === "!") text = `${text}!`;
         else text = text ? `${text} ${word}` : word;
@@ -214,7 +214,7 @@ export default function Home() {
 
     fetchUser();
 
-    const interval = setInterval(fetchUser, 1000);
+    const interval = setInterval(fetchUser, 10000);
 
     return () => clearInterval(interval);
   }, []);
