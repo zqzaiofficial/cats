@@ -52,13 +52,59 @@ export default function Home() {
   const [mailOpen, setMailOpen] = useState(false);
   const [audioReady, setAudioReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
-  const wakeUpTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const wakeUpFrameRef = useRef(0);
+  const pendingPlayRef = useRef(false);
   const hasStartedWakeUp = useRef(false);
 
-  const clearWakeUpSequence = useCallback(() => {
-    wakeUpTimeouts.current.forEach(clearTimeout);
-    wakeUpTimeouts.current = [];
+  const stopWakeUpLoop = useCallback(() => {
+    if (wakeUpFrameRef.current) {
+      cancelAnimationFrame(wakeUpFrameRef.current);
+      wakeUpFrameRef.current = 0;
+    }
   }, []);
+
+  const buildWakeUpText = useCallback((timeMs: number) => {
+    let text = "";
+
+    for (let i = 0; i < WAKE_UP_WORDS.length; i++) {
+      if (timeMs >= WAKE_UP_TIMINGS[i]) {
+        const word = WAKE_UP_WORDS[i];
+        if (word === "!") text = `${text}!`;
+        else text = text ? `${text} ${word}` : word;
+      }
+    }
+
+    return text;
+  }, []);
+
+  const runWakeUpLoop = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || !hasStartedWakeUp.current) return;
+
+    const timeMs = audio.currentTime * 1000;
+    const text = buildWakeUpText(timeMs);
+    const lastWordTime = WAKE_UP_TIMINGS[WAKE_UP_TIMINGS.length - 1];
+
+    if (text) setTextOnScreen(text);
+
+    if (timeMs >= lastWordTime + WAKE_UP_FADE_DELAY + WAKE_UP_FADE_DURATION) {
+      setWakeUpVisible(false);
+      setWakeUpFading(false);
+      setTextOnScreen("");
+      stopWakeUpLoop();
+      return;
+    }
+
+    if (timeMs >= lastWordTime + WAKE_UP_FADE_DELAY) {
+      setWakeUpFading(true);
+    }
+
+    wakeUpFrameRef.current = requestAnimationFrame(runWakeUpLoop);
+  }, [buildWakeUpText, stopWakeUpLoop]);
+
+  const clearWakeUpSequence = useCallback(() => {
+    stopWakeUpLoop();
+  }, [stopWakeUpLoop]);
 
   const startWakeUpSequence = useCallback(() => {
     if (hasStartedWakeUp.current) return;
@@ -66,35 +112,28 @@ export default function Home() {
     setTextOnScreen("");
     setWakeUpVisible(true);
     setWakeUpFading(false);
+    stopWakeUpLoop();
+    wakeUpFrameRef.current = requestAnimationFrame(runWakeUpLoop);
+  }, [runWakeUpLoop, stopWakeUpLoop]);
 
-    WAKE_UP_WORDS.forEach((word, index) => {
-      const timeout = setTimeout(() => {
-        setTextOnScreen((current) => {
-          if (word === "!") return `${current}!`;
-          return current ? `${current} ${word}` : word;
-        });
-      }, WAKE_UP_TIMINGS[index] ?? WAKE_UP_TIMINGS[WAKE_UP_TIMINGS.length - 1]);
+  const attemptAudioPlay = useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio) return false;
 
-      wakeUpTimeouts.current.push(timeout);
-    });
+    audio.currentTime = 0;
 
-    const lastWordTime = WAKE_UP_TIMINGS[WAKE_UP_TIMINGS.length - 1];
-
-    const fadeTimeout = setTimeout(() => {
-      setWakeUpFading(true);
-    }, lastWordTime + WAKE_UP_FADE_DELAY);
-    wakeUpTimeouts.current.push(fadeTimeout);
-
-    const hideTimeout = setTimeout(() => {
-      setWakeUpVisible(false);
-      setWakeUpFading(false);
-      setTextOnScreen("");
-    }, lastWordTime + WAKE_UP_FADE_DELAY + WAKE_UP_FADE_DURATION);
-    wakeUpTimeouts.current.push(hideTimeout);
+    try {
+      await audio.play();
+      pendingPlayRef.current = false;
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   useEffect(() => {
     if (currentPage === "intro") {
+      pendingPlayRef.current = false;
       hasStartedWakeUp.current = false;
       clearWakeUpSequence();
       setTextOnScreen("");
@@ -124,18 +163,16 @@ export default function Home() {
     };
   }, []);
 
-  const handleStart = useCallback(async () => {
+  const handleStart = useCallback(() => {
     setCurrentPage("main");
+    pendingPlayRef.current = true;
+    void attemptAudioPlay();
+  }, [attemptAudioPlay]);
 
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    audio.currentTime = 0;
-
-    try {
-      await audio.play();
-    } catch {}
-  }, []);
+  useEffect(() => {
+    if (currentPage !== "main" || !pendingPlayRef.current || !audioReady) return;
+    void attemptAudioPlay();
+  }, [audioReady, attemptAudioPlay, currentPage]);
 
   useEffect(() => {
     if (currentPage !== "main") return;
@@ -210,23 +247,13 @@ export default function Home() {
         onPlay={startWakeUpSequence}
       />
 
-      {currentPage !== "intro" && wakeUpVisible && textOnScreen && (
-        <h1
-          className={`wake-up-text absolute p-4 max-w-full min-w-sm md:min-w-lg bg-black/90 border-4 border-red-400 top-1/5 md:top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl w-fit text-center md:text-6xl tracking-wide text-red-400 transition-opacity duration-1000 ${
-            wakeUpFading ? "opacity-0" : "opacity-100"
-          }`}
-        >
-          {textOnScreen}
-        </h1>
-      )}
-
       {currentPage === "intro" && (
         <div className="flex h-screen w-screen flex-col items-center justify-center bg-black">
           <h1
             className="cursor-pointer border-b-4 border-dashed text-6xl tracking-wide text-white hover:border-white/80 hover:text-white/80"
             onClick={handleStart}
           >
-            xi says hi 
+            xi says hi
           </h1>
           <span className="mt-2 text-2xl tracking-wide text-white/50">
             click to start
@@ -243,8 +270,17 @@ export default function Home() {
         <>
           <Oneko />
           <MessagePopUp open={mailOpen} onClose={() => setMailOpen(false)} />
-          <div className="flex h-screen w-screen items-center justify-center bg-black">
-            <div className="relative mx-6 w-full max-w-xl border-4 border-white p-6 text-white">
+          <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-black px-6 py-6">
+            {wakeUpVisible && textOnScreen && (
+              <h1
+                className={`wake-up-text w-fit max-w-full shrink-0 border-4 border-red-400 bg-black/90 p-4 text-center text-4xl tracking-wide text-red-400 transition-opacity duration-1000 sm:text-5xl md:text-6xl ${
+                  wakeUpFading ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                {textOnScreen}
+              </h1>
+            )}
+            <div className="relative w-full max-w-xl shrink-0 border-4 border-white p-6 text-white">
               {user ? (
                 <>
                   <div className="flex items-center justify-center">
