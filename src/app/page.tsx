@@ -1,65 +1,97 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Oneko from "react-cursor-cat";
 import Image from "next/image";
+import activityIcon from "../../public/discord.webp";
+import Link from "next/link";
+const knockingAudio = "/knocking_spotdown.org.mp3";
+const LANYARD_USER_ID = "1243325162489643050";
+
+type LanyardResponse = {
+  success: boolean;
+  data: {
+    discord_user: {
+      username: string;
+      global_name: string | null;
+      avatar: string;
+      id: string;
+    };
+    discord_status: "online" | "idle" | "dnd" | "offline";
+    activities: Array<{
+      name: string;
+      details?: string;
+      state?: string;
+      assets?: {
+        large_text?: string;
+        small_text?: string;
+      };
+    }>;
+  };
+};
 
 export default function Home() {
+  const [isActive, setIsActive] = useState(false);
+  const [userInfo, setUserInfo] = useState<LanyardResponse | null>(null);
+
+  useEffect(() => {
+    fetch(`https://api.lanyard.rest/v1/users/${LANYARD_USER_ID}`)
+      .then((res) => res.json())
+      .then((data: LanyardResponse) => setUserInfo(data));
+  }, []);
+
+  const user = userInfo?.data?.discord_user;
+  const activity = userInfo?.data?.activities?.[0];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <>
+      {!isActive && (
+        <div className="flex h-screen w-screen flex-col items-center justify-center bg-black">
+          <h1
+            className="cursor-pointer border-b-4 border-dashed text-6xl tracking-wide text-white hover:border-white/80 hover:text-white/80"
+            onClick={() => setIsActive(true)}
+          >
+            cats.sh
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+          <span className="mt-2 text-2xl tracking-wide text-white/50">
+            click to start
+          </span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      )}
+
+      {isActive && (
+        <>
+          <Oneko />
+          <audio src={knockingAudio}  />
+          <div className="flex h-screen w-screen items-center justify-center bg-black">
+            <div className="mx-6 w-full max-w-xl border-4 border-white p-6 text-white">
+              {user ? (
+                <>
+                  <div className="flex items-center justify-center">
+                    <img src={
+                      `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                    } alt="pfp" className="w-32 h-32 rounded-full" />
+                    <div className={`h-12 w-12 absolute mt-20 ml-20 rounded-full ${
+                      userInfo?.data?.discord_status === "online" ? "bg-green-500" : userInfo?.data?.discord_status === "idle" ? "bg-yellow-500" : userInfo?.data?.discord_status === "dnd" ? "bg-red-400" : "bg-gray-500"
+                    } border-8 border-black`}></div>
+                  </div>
+
+                  <div className="flex items-center justify-center flex-col">
+                    <h1 className="text-white font-bold text-4xl tracking-wide mt-4 text-center">{user.global_name}</h1>
+                    <p className="text-white/40 text-xl tracking-wide text-center">@{user.username}</p>
+                    <p className="text-white/60 text-xl tracking-wide text-center">"i like to eat and i program sometimes"</p>
+                    <Link className="hover:opacity-80 hover:-translate-y-0.25 flex items-center justify-center gap-2" href={`https://discord.com/invite/actualhate`} target="_blank">
+                      my hangout: <Image src={activityIcon} alt="activity" className="w-10 h-10" />
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <p className="text-white/60">loading...</p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

@@ -11,6 +11,7 @@
   "dependencies": {
     "next": "16.2.10",
     "react": "19.2.4",
+    "react-cursor-cat": "^1.0.2",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
