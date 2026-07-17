@@ -178,7 +178,7 @@ export default function Home() {
             className="cursor-pointer border-b-4 border-dashed text-6xl tracking-wide text-white hover:border-white/80 hover:text-white/80"
             onClick={() => setCurrentPage("main")}
           >
-            xi says hi
+            xi says hi 
           </h1>
           <span className="mt-2 text-2xl tracking-wide text-white/50">
             click to start
