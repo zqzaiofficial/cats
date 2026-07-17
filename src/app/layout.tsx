@@ -7,10 +7,33 @@ const vt323 = VT323({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "cats.sh",
-  description: "cats.sh",
-};
+const LANYARD_USER_ID = "1243325162489643050";
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const res = await fetch(
+      `https://api.lanyard.rest/v1/users/${LANYARD_USER_ID}`,
+      { next: { revalidate: 300 } }
+    );
+    const data = await res.json();
+    const user = data?.data?.discord_user;
+
+    if (user?.id && user?.avatar) {
+      return {
+        title: "xi says hi",
+        description: "@howtobag on discord",
+        icons: {
+          icon: `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`,
+        },
+      };
+    }
+  } catch {}
+
+  return {
+    title: "xi says hi",
+    description: "@howtobag on discord",
+  };
+}
 
 export default function RootLayout({
   children,

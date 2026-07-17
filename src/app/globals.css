@@ -38,3 +38,11 @@ body {
   background-image: url("/oneko.gif") !important;
   mix-blend-mode: screen;
 }
+
+.wake-up-text {
+  text-shadow:
+    2px 2px 0 #000,
+    -2px -2px 0 #000,
+    2px -2px 0 #000,
+    -2px 2px 0 #000;
+}
