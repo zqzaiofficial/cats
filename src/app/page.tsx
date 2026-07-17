@@ -6,6 +6,7 @@ import Image from "next/image";
 import discordIcon from "../../public/discord.webp";
 import spotifyIcon from "../../public/Spotify.png";
 import developerIcon from "../../public/developer.png";
+import MessagePopUp from "@/components/message-popup";
 import Link from "next/link";
 
 const knockingAudio = "/gynecologist.mp3";
@@ -48,6 +49,7 @@ export default function Home() {
   const [userInfo, setUserInfo] = useState<LanyardResponse | null>(null);
   const [londonTime, setLondonTime] = useState("");
   const [viewCount, setViewCount] = useState<number | null>(null);
+  const [mailOpen, setMailOpen] = useState(false);
   const [audioReady, setAudioReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const wakeUpTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -240,8 +242,9 @@ export default function Home() {
       {currentPage === "main" && (
         <>
           <Oneko />
+          <MessagePopUp open={mailOpen} onClose={() => setMailOpen(false)} />
           <div className="flex h-screen w-screen items-center justify-center bg-black">
-            <div className="relative mx-6 w-full max-w-xl border-4 border-white p-6 pb-10 text-white">
+            <div className="relative mx-6 w-full max-w-xl border-4 border-white p-6 text-white">
               {user ? (
                 <>
                   <div className="flex items-center justify-center">
@@ -309,9 +312,19 @@ export default function Home() {
               ) : (
                 <p className="text-white/60">loading...</p>
               )}
-              <p className="absolute bottom-3 right-4 text-sm text-white/40">
-                {viewCount ?? "..."} views
-              </p>
+              <div className="pointer-events-none absolute inset-x-3 bottom-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  className="pointer-events-auto cursor-pointer transition hover:opacity-80"
+                  onClick={() => setMailOpen(true)}
+                  aria-label="send mail"
+                >
+                  <Image src="/mail.png" alt="mail" width={32} height={32} />
+                </button>
+                <p className="text-sm leading-none text-white/40">
+                  {viewCount ?? "..."} views
+                </p>
+              </div>
             </div>
           </div>
         </>

@@ -1,24 +1,11 @@
-import { createHash } from "crypto";
 import { ensureSchema, getPool } from "./db";
+import { hashIp } from "./ip";
+
+export { getClientIp } from "./ip";
 
 const VIEW_COOLDOWN_MS = 5 * 60 * 1000;
 const DAILY_VIEW_LIMIT = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-function hashIp(ip: string) {
-  const salt = process.env.VIEW_IP_SALT ?? "cats-sh-default-salt";
-  return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
-}
-
-export function getClientIp(request: Request) {
-  const forwarded = request.headers.get("x-forwarded-for");
-
-  if (forwarded) {
-    return forwarded.split(",")[0]?.trim() || "unknown";
-  }
-
-  return request.headers.get("x-real-ip") ?? "unknown";
-}
 
 export async function getViewCount() {
   await ensureSchema();

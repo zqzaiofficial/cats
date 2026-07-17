@@ -57,6 +57,19 @@ export async function ensureSchema() {
         CREATE INDEX IF NOT EXISTS idx_views_ip_hash_created_at
         ON views (ip_hash, created_at DESC);
       `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS mails (
+          id BIGSERIAL PRIMARY KEY,
+          ip_hash TEXT NOT NULL,
+          author TEXT NOT NULL,
+          content TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+      `);
+      await pool.query(`
+        CREATE INDEX IF NOT EXISTS idx_mails_ip_hash_created_at
+        ON mails (ip_hash, created_at DESC);
+      `);
     })();
   }
 
