@@ -47,6 +47,8 @@ export default function Home() {
   const [wakeUpFading, setWakeUpFading] = useState(false);
   const [userInfo, setUserInfo] = useState<LanyardResponse | null>(null);
   const [londonTime, setLondonTime] = useState("");
+  const [viewCount, setViewCount] = useState<number | null>(null);
+  const [audioReady, setAudioReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const wakeUpTimeouts = useRef<ReturnType<typeof setTimeout>[]>([]);
   const hasStartedWakeUp = useRef(false);
@@ -102,6 +104,52 @@ export default function Home() {
   useEffect(() => clearWakeUpSequence, [clearWakeUpSequence]);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleCanPlay = () => setAudioReady(true);
+
+    audio.preload = "auto";
+    audio.load();
+    audio.addEventListener("canplaythrough", handleCanPlay);
+
+    if (audio.readyState >= HTMLMediaElement.HAVE_ENOUGH_DATA) {
+      setAudioReady(true);
+    }
+
+    return () => {
+      audio.removeEventListener("canplaythrough", handleCanPlay);
+    };
+  }, []);
+
+  const handleStart = useCallback(async () => {
+    setCurrentPage("main");
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    audio.currentTime = 0;
+
+    try {
+      await audio.play();
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (currentPage !== "main") return;
+
+    fetch("/api/views", { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => setViewCount(data.views ?? 0))
+      .catch(() => {
+        fetch("/api/views")
+          .then((res) => res.json())
+          .then((data) => setViewCount(data.views ?? 0))
+          .catch(() => setViewCount(0));
+      });
+  }, [currentPage]);
+
+  useEffect(() => {
     const formatLondonTime = () =>
       new Date().toLocaleTimeString("en-GB", {
         timeZone: "Europe/London",
@@ -151,38 +199,41 @@ export default function Home() {
 
   return (
     <>
-      {currentPage !== "intro" && (
-        <>
-          <audio
-            ref={audioRef}
-            src={knockingAudio}
-            autoPlay
-            loop
-            onPlay={startWakeUpSequence}
-          />
-          {wakeUpVisible && textOnScreen && (
-            <h1
-              className={`wake-up-text absolute p-4 max-w-full min-w-sm md:min-w-lg bg-black/90 border-4 border-red-400 top-1/5 md:top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl w-fit text-center md:text-6xl tracking-wide text-red-400 transition-opacity duration-1000 ${
-                wakeUpFading ? "opacity-0" : "opacity-100"
-              }`}
-            >
-              {textOnScreen}
-            </h1>
-          )}
-        </>
+      <audio
+        ref={audioRef}
+        src={knockingAudio}
+        preload="auto"
+        loop
+        className="hidden"
+        onPlay={startWakeUpSequence}
+      />
+
+      {currentPage !== "intro" && wakeUpVisible && textOnScreen && (
+        <h1
+          className={`wake-up-text absolute p-4 max-w-full min-w-sm md:min-w-lg bg-black/90 border-4 border-red-400 top-1/5 md:top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl w-fit text-center md:text-6xl tracking-wide text-red-400 transition-opacity duration-1000 ${
+            wakeUpFading ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          {textOnScreen}
+        </h1>
       )}
 
       {currentPage === "intro" && (
         <div className="flex h-screen w-screen flex-col items-center justify-center bg-black">
           <h1
             className="cursor-pointer border-b-4 border-dashed text-6xl tracking-wide text-white hover:border-white/80 hover:text-white/80"
-            onClick={() => setCurrentPage("main")}
+            onClick={handleStart}
           >
             xi says hi 
           </h1>
           <span className="mt-2 text-2xl tracking-wide text-white/50">
             click to start
           </span>
+          {!audioReady && (
+            <span className="mt-4 text-lg tracking-wide text-white/30">
+              loading audio...
+            </span>
+          )}
         </div>
       )}
 
@@ -190,7 +241,7 @@ export default function Home() {
         <>
           <Oneko />
           <div className="flex h-screen w-screen items-center justify-center bg-black">
-            <div className="mx-6 w-full max-w-xl border-4 border-white p-6 text-white">
+            <div className="relative mx-6 w-full max-w-xl border-4 border-white p-6 pb-10 text-white">
               {user ? (
                 <>
                   <div className="flex items-center justify-center">
@@ -258,6 +309,9 @@ export default function Home() {
               ) : (
                 <p className="text-white/60">loading...</p>
               )}
+              <p className="absolute bottom-3 right-4 text-sm text-white/40">
+                {viewCount ?? "..."} views
+              </p>
             </div>
           </div>
         </>

@@ -42,6 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full">
+      <head>
+        <link rel="preload" href="/gynecologist.mp3" as="fetch" crossOrigin="anonymous" />
+      </head>
       <body className={`${vt323.className} min-h-full flex flex-col`}>
         {children}
       </body>
