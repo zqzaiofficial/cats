@@ -247,6 +247,9 @@ export default function Home() {
         onPlay={startWakeUpSequence}
       />
 
+      
+      <Oneko />
+
       {currentPage === "intro" && (
         <div className="flex h-screen w-screen flex-col items-center justify-center bg-black">
           <h1
@@ -268,7 +271,6 @@ export default function Home() {
 
       {currentPage === "main" && (
         <>
-          <Oneko />
           <MessagePopUp open={mailOpen} onClose={() => setMailOpen(false)} />
           <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-black px-6 py-6">
             {wakeUpVisible && textOnScreen && (
